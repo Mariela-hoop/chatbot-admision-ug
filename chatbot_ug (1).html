@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asistente Virtual UG - Admisión y Nivelación</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+        }
+
+        .chat-container {
+            width: 95%;
+            max-width: 900px;
+            height: 95vh;
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+
+        .chat-header h1 {
+            font-size: 28px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .chat-header p {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            background: #4CAF50;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+            background: linear-gradient(180deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+
+        .message {
+            margin-bottom: 20px;
+            display: flex;
+            animation: slideIn 0.4s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { 
+                opacity: 0; 
+                transform: translateY(20px); 
+            }
+            to { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+        }
+
+        .message.user {
+            justify-content: flex-end;
+        }
+
+        .message.bot {
+            justify-content: flex-start;
+        }
+
+        .message-content {
+            max-width: 75%;
+            padding: 18px 24px;
+            border-radius: 25px;
+            word-wrap: break-word;
+            position: relative;
+            line-height: 1.5;
+            font-size: 16px;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 8px;
+        }
+
+        .message.bot .message-content {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-bottom-left-radius: 8px;
+        }
+
+        .timestamp {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 8px;
+            text-align: right;
+        }
+
+        .input-container {
+            padding: 25px;
+            background: white;
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 18px 24px;
+            border: 2px solid #e9ecef;
+            border-radius: 30px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+            background: #f8f9fa;
+        }
+
+        .input-field:focus {
+            border-color: #667eea;
+            background: white;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.2);
+        }
+
+        .send-button {
+            padding: 18px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            min-width: 100px;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .typing-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 15px 24px;
+            max-width: 75%;
+            background: rgba(240, 147, 251, 0.2);
+            border-radius: 25px;
+            border-bottom-left-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .typing-dots {
+            display: flex;
+            gap: 4px;
+        }
+
+        .typing-dots span {
+            width: 8px;
+            height: 8px;
+            background: #f5576c;
+            border-radius: 50%;
+            animation: typing 1.5s infinite;
+        }
+
+        .typing-dots span:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+
+        .typing-dots span:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+
+        @keyframes typing {
+            0%, 60%, 100% {
+                transform: translateY(0);
+            }
+            30% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 15px 0;
+        }
+
+        .suggestion-chip {
+            background: rgba(102, 126, 234, 0.1);
+            color: #667eea;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .suggestion-chip:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .welcome-message {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .welcome-message h2 {
+            color: #1e3c72;
+            margin-bottom: 15px;
+            font-size: 24px;
+        }
+
+        .welcome-message p {
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="status-indicator"></div>
+            <h1>🎓 Asistente Virtual UG</h1>
+            <p>Admisión y Nivelación - Universidad de Guayaquil</p>
+        </div>
+        
+        <div class="chat-messages" id="messages">
+            <div class="welcome-message">
+                <h2>¡Bienvenido/a!</h2>
+                <p>Soy tu asistente virtual para consultas sobre admisión y nivelación en la UG. Puedo ayudarte con información sobre requisitos, fechas, procesos de inscripción y más.</p>
+                <div class="suggestions">
+                    <div class="suggestion-chip" onclick="sendSuggestion('¿Cuáles son los requisitos para admisión?')">Requisitos de admisión</div>
+                    <div class="suggestion-chip" onclick="sendSuggestion('¿Cuándo son las fechas de matrícula?')">Fechas de matrícula</div>
+                    <div class="suggestion-chip" onclick="sendSuggestion('¿Cómo creo mi cuenta?')">Crear cuenta</div>
+                    <div class="suggestion-chip" onclick="sendSuggestion('¿Cómo funciona la nivelación?')">Proceso de nivelación</div>
+                </div>
+            </div>
+            
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="typing-dots">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span style="color: #f5576c; font-weight: 500;">Asistente escribiendo...</span>
+            </div>
+        </div>
+        
+        <div class="input-container">
+            <input type="text" class="input-field" id="userInput" placeholder="Escribe tu pregunta aquí..." maxlength="500">
+            <button class="send-button" onclick="sendMessage()">Enviar</button>
+        </div>
+    </div>
+
+    <script>
+        // Base de conocimiento con intenciones y respuestas
+        const knowledgeBase = {
+            // Intenciones de admisión
+            requisitos_admision: {
+                keywords: ['requisitos', 'admision', 'documentos', 'papeles', 'necesito', 'inscribir'],
+                responses: [
+                    "📋 **Requisitos para Admisión UG:**\n\n• Título de bachiller o certificado de estar cursando 3er año\n• Cédula de identidad ecuatoriana o extranjera\n• Certificado de votación (si es mayor de 18 años)\n• 2 fotos tamaño carnet\n• Certificado médico\n• Certificado de sangre\n\n¿Te gustaría información sobre algún documento específico?"
+                ]
+            },
+            
+            crear_cuenta: {
+                keywords: ['cuenta', 'registro', 'inscribir', 'plataforma', 'crear', 'registrar'],
+                responses: [
+                    "💻 **Cómo crear tu cuenta en la plataforma UG:**\n\n1. Ingresa a: https://admision.ug.edu.ec\n2. Haz clic en 'Crear Cuenta'\n3. Ingresa tu número de cédula\n4. Completa tus datos personales\n5. Verifica tu correo electrónico\n6. ¡Listo! Ya puedes acceder\n\n⚠️ **Importante:** Usa un correo válido, recibirás notificaciones importantes ahí."
+                ]
+            },
+            
+            fechas_matricula: {
+                keywords: ['fechas', 'cuando', 'matricula', 'inscripcion', 'registro', 'calendario'],
+                responses: [
+                    "📅 **Fechas importantes 2025:**\n\n🔹 **Registro de postulantes:** 15 enero - 28 febrero\n🔹 **Examen de admisión:** 15-20 marzo\n🔹 **Resultados:** 25 marzo\n🔹 **Matrícula:** 1-15 abril\n🔹 **Inicio de clases:** 22 abril\n\n*Las fechas pueden variar según la carrera. Te recomiendo verificar en la página oficial.*"
+                ]
+            },
+            
+            nivelacion_proceso: {
+                keywords: ['nivelacion', 'curso', 'aprobar', 'nivel', 'prepara'],
+                responses: [
+                    "📚 **Proceso de Nivelación UG:**\n\n✅ **Duración:** 2 semestres (8 meses)\n✅ **Modalidades:** Presencial y virtual\n✅ **Materias:** Matemáticas, Física, Química, Lenguaje\n✅ **Nota mínima:** 7/10 para aprobar\n✅ **Asistencia mínima:** 80%\n\n**¿Sabías que?** La nivelación es obligatoria para todas las carreras y te prepara para el éxito universitario."
+                ]
+            },
+            
+            cupos_carreras: {
+                keywords: ['cupos', 'carrera', 'disponible', 'plaza', 'vacante', 'aceptado'],
+                responses: [
+                    "🎯 **Información sobre cupos:**\n\n• Los cupos varían según la carrera\n• Se asignan por puntaje del examen\n• Puedes postular a máximo 3 carreras\n• Hay cupos especiales para personas con discapacidad\n• Lista de espera disponible\n\n**Carreras más demandadas:**\nMedicina, Ingeniería de Sistemas, Derecho, Psicología\n\n¿Te interesa alguna carrera específica?"
+                ]
+            },
+            
+            notas_asistencia: {
+                keywords: ['notas', 'calificaciones', 'asistencia', 'faltas', 'rendimiento'],
+                responses: [
+                    "📊 **Sistema de calificaciones y asistencia:**\n\n**Calificaciones:**\n• Escala: 0 a 10 puntos\n• Nota mínima: 7/10\n• Evaluación continua: 40%\n• Examen parcial: 30%\n• Examen final: 30%\n\n**Asistencia:**\n• Mínima requerida: 80%\n• Se registra por materia\n• 3 faltas injustificadas = llamada de atención"
+                ]
+            },
+            
+            becas_ayuda: {
+                keywords: ['beca', 'ayuda', 'economica', 'financiera', 'descuento'],
+                responses: [
+                    "🎓 **Programas de becas y ayuda:**\n\n💰 **Beca socioeconómica:** Hasta 100% de descuento\n🏆 **Beca de excelencia:** Para mejores puntajes\n👥 **Beca deportiva/cultural:** Para talentos especiales\n🎯 **Beca pueblos y nacionalidades:** Para grupos étnicos\n\n**Requisitos generales:**\n• Situación socioeconómica verificada\n• Promedio mínimo 8/10\n• No tener título universitario previo"
+                ]
+            },
+            
+            horarios_modalidad: {
+                keywords: ['horarios', 'modalidad', 'presencial', 'virtual', 'tiempo'],
+                responses: [
+                    "⏰ **Horarios y modalidades:**\n\n**Nivelación:**\n🌅 Matutino: 7:00 - 12:00\n🌆 Vespertino: 14:00 - 19:00\n🌙 Nocturno: 19:00 - 22:00\n💻 Virtual: Horarios flexibles\n\n**Carreras universitarias:**\n• Depende de la facultad\n• Mayoría en horario matutino\n• Algunas opciones vespertinas/nocturnas"
+                ]
+            },
+            
+            contacto_ayuda: {
+                keywords: ['contacto', 'telefono', 'email', 'direccion', 'ubicacion'],
+                responses: [
+                    "📞 **Información de contacto:**\n\n🏢 **Oficina de Admisiones:**\nCiudadela Universitaria Salvador Allende\nAv. Delta y Av. Kennedy\n\n📱 **Teléfonos:**\n• (04) 229-3680\n• (04) 229-3681\n\n✉️ **Email:** admision@ug.edu.ec\n\n🕐 **Horarios de atención:**\nLunes a Viernes: 8:00 - 17:00"
+                ]
+            }
+        };
+
+        // Respuestas de fallback
+        const fallbackResponses = [
+            "🤔 Disculpa, no estoy seguro de entender tu pregunta. ¿Podrías ser más específico?",
+            "❓ No tengo información específica sobre eso. ¿Te gustaría preguntar sobre requisitos, fechas o procesos de admisión?",
+            "💬 Por favor, reformula tu pregunta. Puedo ayudarte con temas de admisión, nivelación, fechas y requisitos."
+        ];
+
+        // Funciones principales
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString('es-EC', {
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function addMessage(content, isUser = false) {
+            const messagesContainer = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+            
+            const messageContent = document.createElement('div');
+            messageContent.className = 'message-content';
+            
+            // Procesar markdown básico
+            const processedContent = content
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+            
+            messageContent.innerHTML = processedContent;
+            
+            const timestamp = document.createElement('div');
+            timestamp.className = 'timestamp';
+            timestamp.textContent = getCurrentTime();
+            
+            messageDiv.appendChild(messageContent);
+            messageContent.appendChild(timestamp);
+            messagesContainer.appendChild(messageDiv);
+            
+            // Scroll automático
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'flex';
+            document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+        }
+
+        function hideTypingIndicator() {
+            document.getElementById('typingIndicator').style.display = 'none';
+        }
+
+        // Función para calcular similitud simple
+        function calculateSimilarity(text, keywords) {
+            const textWords = text.toLowerCase().split(' ');
+            const matches = keywords.filter(keyword => 
+                textWords.some(word => word.includes(keyword) || keyword.includes(word))
+            );
+            return matches.length / keywords.length;
+        }
+
+        // Función principal de procesamiento NLP
+        function processUserInput(input) {
+            const cleanInput = input.toLowerCase()
+                .replace(/[¿?¡!.,;]/g, '')
+                .trim();
+            
+            let bestMatch = null;
+            let bestScore = 0;
+            
+            // Buscar la mejor coincidencia
+            for (const [intent, data] of Object.entries(knowledgeBase)) {
+                const similarity = calculateSimilarity(cleanInput, data.keywords);
+                if (similarity > bestScore && similarity > 0.3) { // umbral mínimo
+                    bestMatch = intent;
+                    bestScore = similarity;
+                }
+            }
+            
+            if (bestMatch) {
+                const responses = knowledgeBase[bestMatch].responses;
+                return responses[Math.floor(Math.random() * responses.length)];
+            }
+            
+            return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('userInput');
+            const message = input.value.trim();
+            
+            if (message === '') return;
+            
+            // Agregar mensaje del usuario
+            addMessage(message, true);
+            input.value = '';
+            
+            // Mostrar indicador de escritura
+            showTypingIndicator();
+            
+            // Simular tiempo de respuesta
+            setTimeout(() => {
+                hideTypingIndicator();
+                const response = processUserInput(message);
+                addMessage(response, false);
+            }, 1000 + Math.random() * 2000); // 1-3 segundos
+        }
+
+        function sendSuggestion(suggestion) {
+            document.getElementById('userInput').value = suggestion;
+            sendMessage();
+        }
+
+        // Event listeners
+        document.getElementById('userInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Mensaje inicial del bot
+        setTimeout(() => {
+            addMessage("¡Hola! 👋 Soy el asistente virtual de la Universidad de Guayaquil. Estoy aquí para ayudarte con todas tus consultas sobre admisión y nivelación. ¿En qué puedo ayudarte hoy?", false);
+        }, 1000);
+    </script>
+</body>
+</html>
